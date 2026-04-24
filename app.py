@@ -1,11 +1,8 @@
 import streamlit as st
 from collections import deque
-from langchain_community.vectorstores import Chroma
-from langchain_community.embeddings import HuggingFaceEmbeddings
-from langchain_core.documents import Document
 
 # =========================
-# MEMORY (5–10 interactions)
+# MEMORY (last 10 chats)
 # =========================
 memory = deque(maxlen=10)
 
@@ -19,83 +16,57 @@ def get_memory():
 # TEAM DATA
 # =========================
 team = [
-    {"name":"Ahebwa Baguma Joshua","age":21,"level":"Undergraduate","university":"M'sila University","field":"Medicine"},
-    {"name":"Nzimi Joel","age":22,"level":"Undergraduate","university":"M'sila University","field":"Not specified"},
-    {"name":"Zia John Xavier","age":22,"level":"Undergraduate","university":"M'sila University","field":"Civil Engineering"},
-    {"name":"Kamala Elton","age":21,"level":"Undergraduate","university":"M'sila University","field":"Civil Engineering"},
-    {"name":"Mugwanya Vianny","age":23,"level":"Undergraduate","university":"M'sila University","field":"Medicine"},
-    {"name":"Mohan Mohammed","age":22,"level":"Undergraduate","university":"M'sila University","field":"Civil Engineering"}
+"Ahebwa Baguma Joshua | 21 | Undergraduate | M'sila University | Medicine",
+"Nzimi Joel | 22 | Undergraduate | M'sila University | Not specified",
+"Zia John Xavier | 22 | Undergraduate | M'sila University | Civil Engineering",
+"Kamala Elton | 21 | Undergraduate | M'sila University | Civil Engineering",
+"Mugwanya Vianny | 23 | Undergraduate | M'sila University | Medicine",
+"Mohan Mohammed | 22 | Undergraduate | M'sila University | Civil Engineering"
 ]
 
-def get_team_info():
-    return "\n".join([
-        f"{t['name']} | {t['age']} | {t['level']} | {t['university']} | {t['field']}"
-        for t in team
-    ])
-
 # =========================
-# HUNTER X HUNTER DATA (RAG)
+# HXH KNOWLEDGE
 # =========================
-docs = [
-    Document(page_content="Gon Freecss is a hunter searching for his father."),
-    Document(page_content="Killua Zoldyck is an assassin with lightning abilities."),
-    Document(page_content="Kurapika seeks revenge for his clan."),
-    Document(page_content="Hunter x Hunter involves strategy, battles, and Nen abilities.")
-]
-
-embedding = HuggingFaceEmbeddings()
-db = Chroma.from_documents(docs, embedding)
+knowledge = {
+    "gon": "Gon Freecss is a hunter searching for his father.",
+    "killua": "Killua Zoldyck is an assassin with lightning abilities.",
+    "kurapika": "Kurapika seeks revenge for his clan.",
+    "nen": "Nen is a technique that allows control of life energy."
+}
 
 # =========================
 # DOMAIN FILTER
 # =========================
 def is_valid(query):
     q = query.lower()
-    keywords = ["hunter", "gon", "killua", "kurapika", "nen", "team", "member"]
+    keywords = ["gon", "killua", "kurapika", "nen", "hunter", "team"]
     return any(k in q for k in keywords)
 
 # =========================
-# RETRIEVER
-# =========================
-def retrieve(query):
-    results = db.similarity_search(query, k=3)
-    return "\n".join([r.page_content for r in results])
-
-# =========================
-# RESPONSE ENGINE
+# RESPONSE SYSTEM
 # =========================
 def generate(query):
+    q = query.lower()
 
-    # TEAM QUESTIONS
-    if "team" in query.lower() or "member" in query.lower():
-        return get_team_info()
+    if "team" in q:
+        return "\n".join(team)
 
-    # HXH QUESTIONS (RAG)
-    context = retrieve(query)
+    for key in knowledge:
+        if key in q:
+            return knowledge[key]
 
-    return f"""
-Question: {query}
-
-Context:
-{context}
-
-Memory:
-{get_memory()}
-
-Answer:
-This response is based on Hunter x Hunter knowledge.
-"""
+    return "This question is outside Hunter x Hunter scope."
 
 # =========================
-# STREAMLIT UI
+# UI
 # =========================
-st.title("🎯 HXH RAG Chatbot")
+st.title("🎯 HXH Chatbot")
 
 user_input = st.text_input("Ask a question:")
 
 if st.button("Send"):
     if not is_valid(user_input):
-        response = "I can only answer Hunter x Hunter or team-related questions."
+        response = "I only answer Hunter x Hunter or team-related questions."
     else:
         response = generate(user_input)
 
